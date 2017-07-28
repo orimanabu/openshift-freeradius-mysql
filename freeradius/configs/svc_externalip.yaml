@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: radius-external
+  name: radius-external
+spec:
+  externalIPs:
+  - 172.16.99.21
+  ports:
+  - name: 11812-udp
+    port: 11812
+    protocol: UDP
+    targetPort: 1812
+  - name: 11813-udp
+    port: 11813
+    protocol: UDP
+    targetPort: 1813
+  selector:
+    name: radius
+    app: radius
+    deploymentconfig: radius
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

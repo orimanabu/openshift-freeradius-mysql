@@ -1,0 +1,80 @@
+#oc rsh $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}')
+#mysql -u freeradius -pfreeradius -h 172.30.165.216 -e "show databases"
+#oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h 172.30.165.216 -e "show databases" -t
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "show databases" -t
+
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "source /etc/freeradius/sql/mysql/schema.sql" -t freeradius
+
+[test@master1 freeradius]$ oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "show databases" -t freeradius
+mysql: [Warning] Using a password on the command line interface can be insecure.
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| freeradius         |
++--------------------+
+[test@master1 freeradius]$ oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "show tables" -t freeradius
+mysql: [Warning] Using a password on the command line interface can be insecure.
++----------------------+
+| Tables_in_freeradius |
++----------------------+
+| radacct              |
+| radcheck             |
+| radgroupcheck        |
+| radgroupreply        |
+| radpostauth          |
+| radreply             |
+| radusergroup         |
++----------------------+
+[test@master1 freeradius]$
+
+
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "insert into radcheck (username, attribute, op, value) values ('test', 'Cleartext-Password', ':=', 'test');" -t freeradius
+
+[test@master1 freeradius]$ oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "select * from radcheck" -t freeradius
+mysql: [Warning] Using a password on the command line interface can be insecure.
++----+----------+--------------------+----+-------+
+| id | username | attribute          | op | value |
++----+----------+--------------------+----+-------+
+|  1 | test     | Cleartext-Password | := | test  |
++----+----------+--------------------+----+-------+
+[test@master1 freeradius]$
+
+radtest test test 127.0.0.1 1812 secret
+
+
+
+[test@master1 freeradius]$ sudo docker pull ubuntu:16.04
+Trying to pull repository registry.access.redhat.com/ubuntu ...
+Trying to pull repository docker.io/library/ubuntu ...
+sha256:84c334414e2bfdcae99509a6add166bbb4fa4041dc3fa6af08046a66fed3005f: Pulling from docker.io/library/ubuntu
+Digest: sha256:84c334414e2bfdcae99509a6add166bbb4fa4041dc3fa6af08046a66fed3005f
+Status: Image is up to date for docker.io/ubuntu:16.04
+[test@master1 freeradius]$ sudo docker login -p $(oc whoami -t) -u test docker-registry-default.app.example.com
+Login Succeeded
+[test@master1 freeradius]$ sudo docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+aaa                 latest              b5554bec5b03        About an hour ago   327.2 MB
+docker.io/ubuntu    16.04               14f60031763d        7 days ago          119.5 MB
+docker.io/centos    7                   36540f359ca3        3 weeks ago         192.5 MB
+[test@master1 freeradius]$ sudo docker tag docker.io/ubuntu:16.04 docker-registry-default.app.example.com/radius/ubuntu:16.04
+[test@master1 freeradius]$ sudo docker push docker-registry-default.app.example.com/radius/ubuntu:16.04
+The push refers to a repository [docker-registry-default.app.example.com/radius/ubuntu]
+26b126eb8632: Pushed
+220d34b5f6c9: Pushed
+8a5132998025: Pushed
+aca233ed29c3: Pushed
+e5d2f035d7a4: Pushed
+16.04: digest: sha256:5a1c2d9faf947425923d3001f56f2372cf1d397d7f6dde748919c21caf024ebb size: 5417
+[test@master1 freeradius]$
+
+sudo docker pull ubuntu:16.04
+sudo docker login -p $(oc whoami -t) -u test docker-registry-default.app.example.com
+sudo docker tag docker.io/ubuntu:16.04 docker-registry-default.app.example.com/radius/ubuntu:16.04
+sudo docker push docker-registry-default.app.example.com/radius/ubuntu:16.04
+oc start-build radius --follow --from-dir .
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "show tables" -t freeradius
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "source /etc/freeradius/sql/mysql/schema.sql" -t freeradius
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "show tables" -t freeradius
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "insert into radcheck (username, attribute, op, value) values ('test', 'Cleartext-Password', ':=', 'test');" -t freeradius
+oc exec $(oc get pod | grep Running | grep -v build | grep radius | awk '{print $1}') -- mysql -u freeradius -pfreeradius -h $(oc get svc mysql --template='{{.spec.clusterIP}}') -e "select * from radcheck" -t freeradius

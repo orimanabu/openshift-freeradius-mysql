@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: radius
+  name: radius
+spec:
+  replicas: 1
+  selector:
+    app: radius
+    deploymentconfig: radius
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        name: radius
+        app: radius
+        deploymentconfig: radius
+    spec:
+      containers:
+      - env:
+        - name: RADIUS_CLIENTS
+          value: secret@10.128.0.0/14
+        - name: RADIUS_DB_HOST
+          value: mysql.radius.svc.cluster.local
+#          value: '$ENV{MYSQL_SERVICE_HOST}'
+        - name: RADIUS_DB_NAME
+          value: freeradius
+        - name: RADIUS_DB_PASSWORD
+          value: freeradius
+        - name: RADIUS_DB_USERNAME
+          value: freeradius
+        - name: RADIUS_LISTEN_IP
+          value: '*'
+        - name: RADIUS_SQL
+          value: "true"
+        image: radius:latest
+        imagePullPolicy: Always
+        name: radius
+        ports:
+        - containerPort: 1812
+          protocol: UDP
+        - containerPort: 1813
+          protocol: UDP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  test: false
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - radius
+      from:
+        kind: ImageStreamTag
+        name: radius:latest
+    type: ImageChange
