@@ -31,7 +31,7 @@ spec:
         - name: RADIUS_CLIENTS
           value: secret@10.128.0.0/14
         - name: RADIUS_DB_HOST
-          value: mysql.radius.svc.cluster.local
+          value: radius-db.radius.svc.cluster.local
 #          value: '$ENV{MYSQL_SERVICE_HOST}'
         - name: RADIUS_DB_NAME
           value: freeradius
