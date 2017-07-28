@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 RUN apt -y update; apt install -y freeradius freeradius-mysql freeradius-postgresql freeradius-utils curl gettext-base vim mysql-client-core-5.7
 RUN apt install -y bash less tcpdump netcat strace lsof iputils-ping net-tools
 
-EXPOSE 1812/udp 1813/udp
+EXPOSE 1812 1813
 
 ADD templates/default.template default.template
 ADD templates/inner-tunnel.template inner-tunnel.template
