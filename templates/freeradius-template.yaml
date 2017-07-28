@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: freeradius-template
+message: |-
+  RADIUS server for MySQL backend.
+metadata:
+  annotations:
+    description: |-
+      FreeRADIUS/Ubuntu 16.04, (MySQL backend)
+    openshift.io/display-name: FreeRADIUS (MySQL backend)
+    tags: freeradius
+  name: freeradius
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${RADIUS_SERVICE_NAME}
+  spec:
+    ports:
+    - name: 1812-udp
+      port: 1812
+      protocol: UDP
+      targetPort: 1812
+    - name: 1813-udp
+      port: 1813
+      protocol: UDP
+      targetPort: 1813
+    selector:
+      name: ${RADIUS_SERVICE_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${RADIUS_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${RADIUS_SERVICE_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: ${RADIUS_SERVICE_NAME}
+          name: ${RADIUS_SERVICE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: RADIUS_CLIENTS
+            value: secret@10.128.0.0/14
+          - name: RADIUS_DB_HOST
+            value: mysql.radius.svc.cluster.local
+#            value: '$ENV{MYSQL_SERVICE_HOST}'
+          - name: RADIUS_DB_NAME
+            value: freeradius
+          - name: RADIUS_DB_PASSWORD
+            value: freeradius
+          - name: RADIUS_DB_USERNAME
+            value: freeradius
+          - name: RADIUS_LISTEN_IP
+            value: '*'
+          - name: RADIUS_SQL
+            value: "true"
+          - name: MYSQL_DATABASE
+            value: ${MYSQL_DATABASE}
+#          image: ' '
+          image: radius:latest
+          imagePullPolicy: IfNotPresent
+          name: ${RADIUS_SERVICE_NAME}
+          ports:
+          - containerPort: 1812
+            protocol: UDP
+          - containerPort: 1813
+            protocol: UDP
+          resources: {}
+#          resources:
+#            limits:
+#              memory: ${MEMORY_LIMIT}
+          securityContext: {}
+#          securityContext:
+#            capabilities: {}
+#            privileged: false
+          terminationMessagePath: /dev/termination-log
+#          volumeMounts:
+#          - mountPath: /var/lib/mysql/data
+#            name: ${RADIUS_SERVICE_NAME}-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+#        volumes:
+#        - emptyDir:
+#            medium: ""
+#          name: ${RADIUS_SERVICE_NAME}-data
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${RADIUS_SERVICE_NAME}
+        from:
+          kind: ImageStreamTag
+          name: radius:latest
+          namespace: ${NAMESPACE}
+        lastTriggeredImage: ""
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+parameters:
+- description: RADIUS clients' secret
+  displayName: RADIUS Clients
+  name: RADIUS_CLIENTS
+  required: true
+  value: secret@127.0.0.1
+- description: Hostname of MySQL backend
+  displayName: RADIUS Database Host
+  name: RADIUS_DB_HOST
+  value: mysql.radius.svc.cluster.local
+- description: The name of the OpenShift Service exposed for the RADIUS server.
+  displayName: RADIUS Service Name
+  name: RADIUS_SERVICE_NAME
+  required: true
+  value: radius
+- description: Name of the RADIUS database accessed.
+  displayName: RADIUS Database Name
+  name: RADIUS_DB_NAME
+  required: true
+  value: radiusdb
+- description: Username for MySQL user that will be used for accessing the database from RADIUS.
+  displayName: MySQL Connection Username for RADIUS
+  from: user[A-Z0-9]{3}
+  generate: expression
+  name: RADIUS_DB_USERNAME
+  required: true
+- description: Password for the MySQL connection user for RADIUS.
+  displayName: MySQL Connection Password for RADIUS
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: RADIUS_DB_PASSWORD
+  required: true
