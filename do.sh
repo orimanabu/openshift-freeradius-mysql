@@ -13,6 +13,6 @@
 
 sudo oadm policy add-scc-to-user anyuid -z default -n radius
 
-oc new-app --template=mysql-ephemeral --name=database --param MYSQL_USER=freeradius --param MYSQL_PASSWORD=freeradius --param MYSQL_DATABASE=freeradius --param MYSQL_ROOT_PASSWORD=root --param DATABASE_SERVICE_NAME=mysql
+oc new-app --template=mysql-ephemeral --name=database --param MYSQL_USER=freeradius --param MYSQL_PASSWORD=freeradius --param MYSQL_DATABASE=freeradius --param MYSQL_ROOT_PASSWORD=root --param DATABASE_SERVICE_NAME=radius-db
 #oc delete svc/mysql dc/mysql
 
